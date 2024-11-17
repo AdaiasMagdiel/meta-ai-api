@@ -1,0 +1,29 @@
+{
+    "name": "adaiasmagdiel/meta-ai-api",
+    "description": "Llama 3 API 70B & 405B (MetaAI Reverse Engineered) in PHP, based on the work of [Strvm](https://github.com/Strvm/meta-ai-api/)",
+    "type": "library",
+    "require": {
+        "guzzlehttp/guzzle": "^7.9"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.5"
+    },
+    "license": "GPL-3.0-only",
+    "autoload": {
+        "psr-4": {
+            "AdaiasMagdiel\\MetaAI\\": "app/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Adaías Magdiel",
+            "email": "adaiasmagdiell@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
