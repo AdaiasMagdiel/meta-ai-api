@@ -75,4 +75,21 @@ class Utils
 
 		return strval($threading_id);
 	}
+
+	public static function formatResponse(array $response): string
+	{
+		$text = "";
+
+		$data = $response["data"] ?? [];
+		$node = $data["node"] ?? [];
+		$brm = $node["bot_response_message"] ?? [];
+		$ct = $brm["composed_text"] ?? [];
+		$contents = $ct["content"] ?? [];
+
+		foreach ($contents as $content) {
+			$text .= ($content["text"] ?? "") . PHP_EOL;
+		}
+
+		return $text;
+	}
 }
