@@ -92,4 +92,37 @@ class Utils
 
 		return $text;
 	}
+
+	public static function iterLines($stream, int $chunkSize = 512, string $delimiter = null)
+	{
+		$pending = null;
+
+		while (!$stream->eof()) {
+			$chunk = $stream->read($chunkSize);
+
+			if ($pending !== null) {
+				$chunk = $pending . $chunk;
+			}
+
+			if ($delimiter !== null) {
+				$lines = explode($delimiter, $chunk);
+			} else {
+				$lines = explode("\n", $chunk);
+			}
+
+			if (!empty($lines) && substr($chunk, -1) === substr($lines[count($lines) - 1], -1)) {
+				$pending = array_pop($lines);
+			} else {
+				$pending = null;
+			}
+
+			foreach ($lines as $line) {
+				yield $line;
+			}
+		}
+
+		if ($pending !== null) {
+			yield $pending;
+		}
+	}
 }
