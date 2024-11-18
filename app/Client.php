@@ -205,6 +205,22 @@ class Client
 		return $obj;
 	}
 
+	private function streamResponse($lines)
+	{
+		foreach ($lines as $line) {
+			if (!empty($line)) {
+				$jsonLine = json_decode($line, true);
+				$extractedData = $this->extractData($jsonLine);
+
+				if (empty($extractedData->message)) {
+					continue;
+				}
+
+				yield $extractedData;
+			}
+		}
+	}
+
 	public function prompt(
 		string $message,
 		bool $stream = False,
@@ -271,7 +287,14 @@ class Client
 			$extractedData = $this->extractData($lastStreamedResponse);
 			return $extractedData;
 		} else {
-			// TODO
+			$lines = Utils::iterLines($response->getBody());
+
+			$isError = json_decode(next($lines), true);
+			if (!empty($isError['errors'])) {
+				return $this->retry($message, $stream, $attempts);
+			}
+
+			return $this->streamResponse($lines);
 		}
 	}
 }
