@@ -130,4 +130,68 @@ class Client
 
 		return $accessToken;
 	}
+
+	public function prompt(
+		string $message,
+		bool $stream = False,
+		int $attempts = 0,
+		bool $newConversation = False,
+	): mixed {
+		if (!$this->isAuthed) {
+			$this->accessToken = $this->getAccessToken();
+			$authPayload = ["access_token" => $this->accessToken];
+			$url = "https://graph.meta.ai/graphql?locale=user";
+		} else {
+			$authPayload = ["fb_dtsg" => $this->cookies["fb_dtsg"]];
+			$url = "https://www.meta.ai/api/graphql/";
+		}
+
+		if (empty($this->externalConversationId) || $newConversation) {
+			$this->externalConversationId = Utils::uuid4();
+		}
+
+		$payload = array_merge($authPayload, [
+			"fb_api_caller_class" => "RelayModern",
+			"fb_api_req_friendly_name" => "useAbraSendMessageMutation",
+			"variables" => '{"message": {"sensitive_string_value": "' . $message . '"}, "externalConversationId": "' . $this->externalConversationId . '", "offlineThreadingId": "' . Utils::generateOfflineThreadingId() . '", "suggestedPromptIndex": null, "flashVideoRecapInput": {"images": []}, "flashPreviewInput": null, "promptPrefix": null, "entrypoint": "ABRA__CHAT__TEXT", "icebreaker_type": "TEXT", "__relay_internal__pv__AbraDebugDevOnlyrelayprovider": false, "__relay_internal__pv__WebPixelRatiorelayprovider": 1}',
+			"server_timestamps" => "true",
+			"doc_id" => "7783822248314888",
+		]);
+
+		$_js_datr = $this->cookies["_js_datr"] ?? "";
+		$abra_csrf = $this->cookies["abra_csrf"] ?? "";
+		$datr = $this->cookies["datr"] ?? "";
+
+		foreach ([$_js_datr, $abra_csrf, $datr] as $cookie) {
+			if (empty($cookie)) {
+				throw new Exception("Problem to loading cookies.");
+			}
+		}
+
+		$headers = [
+			"content-type" => "application/x-www-form-urlencoded",
+			"x-fb-friendly-name" => "useAbraSendMessageMutation",
+			"cookie" => "_js_datr=$_js_datr; abra_csrf=$abra_csrf; datr=$datr;",
+			"sec-fetch-site" => "same-origin",
+		];
+
+		if ($this->isAuthed) {
+			$headers["cookie"] = 'abra_sess=' . $this->cookies["abra_sess"];
+		}
+
+		$response = $this->client->post($url, [
+			'headers' => $headers,
+			'form_params' => $payload,
+			"stream" => $stream
+		]);
+
+
+		if (!$stream) {
+			$raw_response = $response->getBody()->getContents();
+
+			return $raw_response;
+		} else {
+			// TODO
+		}
+	}
 }
