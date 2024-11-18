@@ -6,6 +6,8 @@ use Exception;
 use JsonException;
 use GuzzleHttp\Client as GuzzleHttpClient;
 
+define("MAX_RETRIES", 3);
+
 class Client
 {
 	private GuzzleHttpClient $client;
@@ -131,6 +133,71 @@ class Client
 		return $accessToken;
 	}
 
+	private function extractLastResponse(string $response): ?array
+	{
+		$lastStreamedResponse = null;
+		$lines = explode("\n", $response);
+
+		foreach ($lines as $line) {
+			try {
+				$jsonLine = json_decode($line, associative: true, flags: JSON_THROW_ON_ERROR);
+			} catch (JsonException) {
+				continue;
+			}
+
+			$data = $jsonLine["data"] ?? [];
+			$node = $data["node"] ?? [];
+			$botResponseMessage = $node["bot_response_message"] ?? [];
+			$chatId = $botResponseMessage["id"] ?? null;
+
+			if (!is_null($chatId)) {
+				list($externalConversationId, $offlineThreadingId, $_) = explode("_", $chatId, 3);
+
+				$this->externalConversationId = $externalConversationId;
+				$this->offlineThreadingId = $offlineThreadingId;
+			}
+
+			$streamingState = $botResponseMessage["streaming_state"] ?? "";
+			if ($streamingState === "OVERALL_DONE") {
+				$lastStreamedResponse = $jsonLine;
+			}
+		}
+
+		return $lastStreamedResponse;
+	}
+
+	private function retry(string $message, bool $stream = false, int $attempts = 0)
+	{
+		if ($attempts <= MAX_RETRIES) {
+			echo  "Was unable to obtain a valid response from Meta AI. Retrying...";
+			sleep(3);
+
+			return $this->prompt($message, stream: $stream, attempts: $attempts + 1);
+		} else {
+			throw new Exception(
+				"Unable to obtain a valid response from Meta AI. Try again later."
+			);
+		}
+	}
+
+	private function extractData(array $jsonLine)
+	{
+		$data = $jsonLine["data"] ?? [];
+		$node = $data["node"] ?? [];
+		$botResponseMessage = $node["bot_response_message"] ?? [];
+
+		$response = Utils::formatResponse(response: $jsonLine);
+
+		/*
+		TODO: Implements extract sources and medias
+        	$fetchId = $botResponseMessage["fetch_id"] ?? null;
+        	$sources = !is_null($fetchId) ? $this->fetchSources($fetchId) : [];
+        	$medias = $this->extractMedia($botResponseMessage);
+        */
+
+		return ["message" => $response, "sources" => [], "media" => []];
+	}
+
 	public function prompt(
 		string $message,
 		bool $stream = False,
@@ -185,11 +252,17 @@ class Client
 			"stream" => $stream
 		]);
 
-
 		if (!$stream) {
-			$raw_response = $response->getBody()->getContents();
+			$rawResponse = $response->getBody()->getContents();
 
-			return $raw_response;
+			$lastStreamedResponse = $this->extractLastResponse($rawResponse);
+
+			if (is_null($lastStreamedResponse)) {
+				return $this->retry($message, stream: $stream, attempts: $attempts);
+			}
+
+			$extractedData = $this->extractData($lastStreamedResponse);
+			return $extractedData;
 		} else {
 			// TODO
 		}
