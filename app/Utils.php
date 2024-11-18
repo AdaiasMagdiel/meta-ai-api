@@ -24,4 +24,55 @@ class Utils
 
 		return substr($text, $startIdx, $endIdx - $startIdx);
 	}
+
+	public static function uuid4(): string
+	{
+		$data = random_bytes(16);
+
+		$data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+		$data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+		return sprintf(
+			'%08s-%04s-%04s-%04s-%12s',
+			bin2hex(substr($data, 0, 4)),
+			bin2hex(substr($data, 4, 2)),
+			bin2hex(substr($data, 6, 2)),
+			bin2hex(substr($data, 8, 2)),
+			bin2hex(substr($data, 10, 6))
+		);
+	}
+
+	public static function generateOfflineThreadingId()
+	{
+		$max_int = PHP_INT_MAX;
+		$mask22_bits = (1 << 22) - 1;
+
+		function get_current_timestamp()
+		{
+			return floor(microtime(true) * 1000);
+		}
+
+		function get_random_64bit_int()
+		{
+			$bytes = openssl_random_pseudo_bytes(8);
+			$value = 0;
+			for ($i = 0; $i < 8; $i++) {
+				$value = ($value << 8) | ord($bytes[$i]);
+			}
+			return $value;
+		}
+
+		function combine_and_mask($timestamp, $random_value, $mask22_bits, $max_int)
+		{
+			$shifted_timestamp = $timestamp << 22;
+			$masked_random = $random_value & $mask22_bits;
+			return ($shifted_timestamp | $masked_random) & $max_int;
+		}
+
+		$timestamp = get_current_timestamp();
+		$random_value = get_random_64bit_int();
+		$threading_id = combine_and_mask($timestamp, $random_value, $mask22_bits, $max_int);
+
+		return strval($threading_id);
+	}
 }
