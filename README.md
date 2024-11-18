@@ -1,7 +1,3 @@
-Segue a versão do README com a seção de instalação adicionada:
-
----
-
 # PHP MetaAI API Wrapper
 
 MetaAI is a PHP library designed to seamlessly interact with Meta's AI APIs, which power the backend of [meta.ai](https://www.meta.ai/). This library simplifies the complexities of authentication and communication, offering a user-friendly interface for sending queries and receiving responses from Meta AI.
@@ -21,13 +17,15 @@ Key Features:
 
 ## Installation
 
-You can install the library via Composer. Run the following command:
+Install the Meta AI API library using Composer:
 
 ```bash
 composer require adaiasmagdiel/meta-ai-api
 ```
 
-Once installed, you can start using the library in your project.
+### Getting Started
+
+Basic Usage
 
 ```php
 require_once __DIR__ . "/vendor/autoload.php";
@@ -35,9 +33,75 @@ require_once __DIR__ . "/vendor/autoload.php";
 use AdaiasMagdiel\MetaAI\Client;
 
 $client = new Client();
-$res = $client->prompt("Hi! What's the date and weather in Itaituba, Pará, today?");
+$response = $client->prompt("What's the date and weather in Itaituba, Pará, today?");
 
-echo $res->message . PHP_EOL;
+echo $response->message . PHP_EOL;
+```
+
+### Streaming Responses
+
+Enable streaming to receive responses in real-time:
+
+```php
+require_once __DIR__ . "/vendor/autoload.php";
+
+use AdaiasMagdiel\MetaAI\Client;
+
+$client = new Client();
+$response = $client->prompt("Tell me about the latest tech news.", stream: true);
+
+foreach ($response as $chunk) {
+    var_dump($chunk);
+}
+```
+
+### Terminal Stream Viewer
+
+Create a terminal stream viewer to display responses in a formatted way:
+
+Steps:
+  - Include the autoload file;
+  - Import the Client class;
+  - Create a Client instance;
+  - Send a request with streaming;
+  - Initialize the line counter;
+  - Iterate over the response stream;
+  - Move the cursor to the top;
+  - Format the message;
+  - Display the message in the terminal;
+  - Update the line counter.
+
+```php
+require_once __DIR__ . "/vendor/autoload.php";
+
+use AdaiasMagdiel\MetaAI\Client;
+
+$client = new Client();
+
+// Send a prompt to the API with streaming enabled
+$response = $client->prompt(
+    "Who is Bruce Wayne?", 
+    stream: true
+);
+
+// Initialize line counter
+$lines = 0;
+
+// Iterate over the response stream
+foreach ($response as $chunk) {
+    // Move cursor to top of previous lines, if necessary
+    $esc = $lines > 0 ? "\x1B[{$lines}F" : "\r";
+
+    // Format message to 75 characters per line
+    $message = wordwrap($chunk->message, 75, "\n", true);
+
+    // Display message in terminal
+    echo $esc . $message;
+    flush(); // Ensure output is displayed immediately
+
+    // Update line counter
+    $lines = substr_count($message, "\n");
+}
 ```
 
 ## License
