@@ -5,6 +5,7 @@ namespace AdaiasMagdiel\MetaAI;
 use Exception;
 use JsonException;
 use GuzzleHttp\Client as GuzzleHttpClient;
+use stdClass;
 
 define("MAX_RETRIES", 3);
 
@@ -180,7 +181,7 @@ class Client
 		}
 	}
 
-	private function extractData(array $jsonLine)
+	private function extractData(array $jsonLine): stdClass
 	{
 		$data = $jsonLine["data"] ?? [];
 		$node = $data["node"] ?? [];
@@ -195,7 +196,13 @@ class Client
         	$medias = $this->extractMedia($botResponseMessage);
         */
 
-		return ["message" => $response, "sources" => [], "media" => []];
+		$obj = new stdClass();
+
+		$obj->message = $response;
+		$obj->sources = [];
+		$obj->media = [];
+
+		return $obj;
 	}
 
 	public function prompt(
