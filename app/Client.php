@@ -240,6 +240,8 @@ class Client
 			$this->externalConversationId = Utils::uuid4();
 		}
 
+		$message = addslashes($message);
+
 		$payload = array_merge($authPayload, [
 			"fb_api_caller_class" => "RelayModern",
 			"fb_api_req_friendly_name" => "useAbraSendMessageMutation",
